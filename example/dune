@@ -2,4 +2,4 @@
  (name example)
  (libraries async sriracha)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane ppx_sriracha)))
