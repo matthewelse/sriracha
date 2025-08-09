@@ -1,4 +1,7 @@
 open! Core
+open! Async
+
+let _link_async () = Async.Deferred.return ()
 
 let main () =
   (* Notes from making this work:
@@ -11,7 +14,7 @@ let main () =
 
      - I think the key will be to compile two versions of a library you want to hot reload:
        a static version (to ensure that all of your dependencies are linked correctly), and
-       a dynamic version (to ensure that 
-       *)
+       a dynamic version (to ensure that
+  *)
   Sriracha.hot_reloader ()
 ;;

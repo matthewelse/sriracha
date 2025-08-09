@@ -1,3 +1,5 @@
 (library
  (name example)
- (libraries sriracha))
+ (libraries async sriracha)
+ (preprocess
+  (pps ppx_jane)))

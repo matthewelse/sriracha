@@ -1,6 +1,6 @@
 (library
  (public_name sriracha)
  (name sriracha)
- (libraries core dynlink core_unix)
+ (libraries async core dynlink core_unix)
  (preprocess
   (pps ppx_jane)))
