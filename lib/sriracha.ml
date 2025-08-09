@@ -1,9 +1,6 @@
 open! Core
 open! Async
 
-let witness = Type_equal.Id.create ~name:"sriracha" sexp_of_unit
-let initial_load = ref true
-
 exception Loaded of (unit -> unit Deferred.t)
 
 module Thunk = struct
@@ -57,6 +54,9 @@ let register
   (arg_rep : a Typerep.t)
   (res_rep : r Typerep.t)
   =
+  (* TODO: check that this is compatible with the existing function in the jump table. If
+     the types mismatch, you probably want to restart the main function or something
+     drastic. *)
   Hashtbl.set
     jump_table
     ~key:func
