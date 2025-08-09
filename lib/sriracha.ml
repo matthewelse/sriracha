@@ -14,37 +14,37 @@ module Thunk = struct
 end
 
 let jump_table : Thunk.t String.Table.t = String.Table.create ()
+let with_hot_reloading main = raise (Loaded main)
 
-let enable_hot_reload ~main =
-  Core.print_endline "- dynamic load -";
-  raise (Loaded main)
-;;
-
-let hot_reloader () =
-  Core.print_endline "- starting hot reloader -";
-  let dynlib = "_build/default/example/example.cmxs" in
+let reload dynlib ~f ~on_error =
   Core.printf "loading: %s\n" dynlib;
-  Deferred.forever () (fun () ->
-    let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec 2) in
-    let new_file = [%string "new.cmxs"] in
-    (* This is needed to stop [Ppx_expect_runtime] from complaining when we reload a file. *)
-    (try Ppx_expect_runtime.Current_file.unset () with
-     | _ -> ());
-    (try Dynlink.loadfile_private new_file with
-     | Dynlink.Error (Library's_module_initializers_failed (Loaded _)) ->
-       Core.print_endline "successfully reloaded!"
-     | exn -> Core.eprint_s [%message "exception raised when loading" (exn : Exn.t)]);
-    return ());
+  (* This is needed to stop [Ppx_expect_runtime] from complaining when we reload a file. *)
+  (try (Ppx_expect_runtime.Current_file.unset [@alert "-ppx_expect_runtime"]) () with
+   | _ -> ());
   try
     Dynlink.loadfile_private dynlib;
-    return ()
+    on_error ()
   with
   | Dynlink.Error (Library's_module_initializers_failed (Loaded main)) ->
-    Core.print_endline "successfully loaded!";
-    main ()
+    Core.print_endline "successfully reloaded!";
+    f main
   | exn ->
     Core.eprint_s [%message "exception raised when loading" (exn : Exn.t)];
-    return ()
+    on_error ()
+;;
+
+let hot_reloader ~dynlib =
+  Core.print_endline "- starting hot reloader -";
+  Core.printf "loading: %s\n" dynlib;
+  (* TODO: rip out all of the async code, and use threads instead *)
+  Deferred.forever () (fun () ->
+    let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec 2) in
+    let tmp_file = Filename_unix.temp_file "dynlib" "cmxs" in
+    let%bind () =
+      Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
+    in
+    reload tmp_file ~f:(fun _ -> return ()) ~on_error:(fun () -> return ()));
+  reload dynlib ~f:(fun main -> main ()) ~on_error:(fun () -> return ())
 ;;
 
 let register

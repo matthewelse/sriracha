@@ -16,5 +16,5 @@ let main () =
        a static version (to ensure that all of your dependencies are linked correctly), and
        a dynamic version (to ensure that
   *)
-  Sriracha.hot_reloader ()
+  Sriracha.hot_reloader ~dynlib:"_build/default/example/example.cmxs"
 ;;
