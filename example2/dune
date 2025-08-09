@@ -1,4 +1,0 @@
-(library
- (name example2)
- (libraries sriracha))
-

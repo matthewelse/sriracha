@@ -1,5 +1,3 @@
 (library
- (name hot_example)
- (libraries core dynlink sriracha)
- (preprocess
-  (pps ppx_jane)))
+ (name example)
+ (libraries sriracha))

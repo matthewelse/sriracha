@@ -3,19 +3,20 @@ open! Core
 let witness = Type_equal.Id.create ~name:"sriracha" sexp_of_unit
 let initial_load = ref true
 
-exception Loaded
+exception Loaded of (unit -> unit)
 
-let enable_hot_reload () =
+let enable_hot_reload ~main =
   print_endline "- dynamic load -";
-  raise Loaded
+  raise (Loaded main)
 ;;
 
-let register impl = impl
-
 let hot_reloader () =
-  print_endline "attempting live reload";
-  let dynlib = "_build/default/example2/example2.cmxs" in
+  print_endline "- starting hot reloader -";
+  let dynlib = "_build/default/example/example.cmxs" in
   printf "loading: %s\n" dynlib;
-  (try Dynlink.loadfile_private dynlib with
-   | exn -> print_s [%message "exception raised while loading" (exn : Exn.t)]);
-  print_endline "successfully loaded!"
+  try Dynlink.loadfile_private dynlib with
+  | Dynlink.Error (Library's_module_initializers_failed (Loaded main)) ->
+    print_endline "successfully loaded!"
+    ;
+    main ()
+;;
