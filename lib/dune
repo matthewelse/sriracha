@@ -1,0 +1,4 @@
+(library
+ (public_name sriracha)
+ (name sriracha)(libraries core))
+
