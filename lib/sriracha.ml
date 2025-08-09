@@ -23,14 +23,15 @@ let reload dynlib ~f ~on_error =
    | _ -> ());
   try
     Dynlink.loadfile_private dynlib;
-    on_error ()
+    on_error
+      (Error.of_string "[with_hot_reloading] was not called by the hot-loaded function")
   with
   | Dynlink.Error (Library's_module_initializers_failed (Loaded main)) ->
     Core.print_endline "successfully reloaded!";
     f main
   | exn ->
     Core.eprint_s [%message "exception raised when loading" (exn : Exn.t)];
-    on_error ()
+    on_error (Error.of_exn exn)
 ;;
 
 let hot_reloader ~dynlib =
@@ -52,8 +53,13 @@ let hot_reloader ~dynlib =
       let%bind () =
         Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
       in
-      reload tmp_file ~f:(fun _ -> return ()) ~on_error:(fun () -> return ())));
-  reload dynlib ~f:(fun main -> main ()) ~on_error:(fun () -> return ())
+      reload
+        tmp_file
+        ~f:(fun _ -> return ())
+        ~on_error:(fun error ->
+          Core.eprint_s [%message "error while reloading" (error : Error.t)];
+          return ())));
+  reload dynlib ~f:(fun main -> main ()) ~on_error:Error.raise
 ;;
 
 let register
