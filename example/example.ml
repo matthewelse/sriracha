@@ -2,12 +2,15 @@ open! Core
 open! Async
 
 let hot_impl () =
-  for i = 1 to 2 do
+  for i = 1 to 5 do
     Core.print_endline [%string "hello, world %{i#Int}"]
   done
 ;;
 
-let hot () = Sriracha.call hot_impl ()
+let hot =
+  Sriracha.register hot_impl ~__FUNCTION__ [%typerep_of: unit] [%typerep_of: unit]
+  |> Staged.unstage
+;;
 
 let main () =
   Core.print_endline "helloooo";
@@ -15,4 +18,4 @@ let main () =
   Deferred.never ()
 ;;
 
-let () = Sriracha.enable_hot_reload ~main ~hot:hot_impl
+let () = Sriracha.enable_hot_reload ~main
