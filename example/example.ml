@@ -2,7 +2,7 @@ open! Core
 open! Async
 
 let hot_impl () =
-  for i = 1 to 10 do
+  for i = 1 to 2 do
     Core.print_endline [%string "hello, world %{i#Int}"]
   done
 ;;

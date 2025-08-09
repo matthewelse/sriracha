@@ -36,14 +36,23 @@ let reload dynlib ~f ~on_error =
 let hot_reloader ~dynlib =
   Core.print_endline "- starting hot reloader -";
   Core.printf "loading: %s\n" dynlib;
+  let%bind md5sum = Process.run_exn ~prog:"md5sum" ~args:[ dynlib ] () in
+  let md5sum = ref md5sum in
   (* TODO: rip out all of the async code, and use threads instead *)
+  (* I'm too lazy to make fswatch work, so just md5sum the file every time we reload, and
+     if the file differs, reload. *)
   Deferred.forever () (fun () ->
     let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec 2) in
-    let tmp_file = Filename_unix.temp_file "dynlib" "cmxs" in
-    let%bind () =
-      Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
-    in
-    reload tmp_file ~f:(fun _ -> return ()) ~on_error:(fun () -> return ()));
+    let%bind new_md5sum = Process.run_exn ~prog:"md5sum" ~args:[ dynlib ] () in
+    if String.equal !md5sum new_md5sum
+    then return ()
+    else (
+      md5sum := new_md5sum;
+      let tmp_file = Filename_unix.temp_file "dynlib" "cmxs" in
+      let%bind () =
+        Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
+      in
+      reload tmp_file ~f:(fun _ -> return ()) ~on_error:(fun () -> return ())));
   reload dynlib ~f:(fun main -> main ()) ~on_error:(fun () -> return ())
 ;;
 
@@ -68,6 +77,5 @@ let register
     | Some (T { f; arg_typerep; res_typerep }) ->
       let T = Typerep.same_witness_exn arg_rep arg_typerep in
       let T = Typerep.same_witness_exn res_rep res_typerep in
-      Core.print_s [%message "calling f via jump table"];
       f arg)
 ;;
