@@ -33,14 +33,21 @@ let extract_param_type = function
       "Unsupported function argument: locally abstract types are not supported."
 ;;
 
+let ghostify =
+  object
+    inherit Ppxlib.Ast_traverse.map
+    method! location loc = { loc with loc_ghost = true }
+  end
+;;
+
 let extension =
   Extension.V3.declare
     "hot"
     Structure_item
     Ast_pattern.(
-      pstr (pstr_value nonrecursive (value_binding ~pat:__' ~expr:__ ^:: nil) ^:: nil))
-    (fun ~ctxt:_ name body ->
-      let loc = name.loc in
+      (* let $name = $body *)
+      pstr (pstr_value nonrecursive (value_binding ~pat:__ ~expr:__ ^:: nil) ^:: nil))
+    (fun ~ctxt name body ->
       let arg_types, return_type =
         match body.pexp_desc with
         | Pexp_function
@@ -58,32 +65,41 @@ let extension =
           , ({ result_modes = []; result_type = return_type }
              : Ppxlib_jane.Shim.arrow_result) )
         | Pexp_function
-            ( [ { pparam_desc = Pparam_val (Nolabel, None, [%pat? (_ : [%t? _])]); _ } ]
+            ( _
             , { mode_annotations = []
               ; ret_mode_annotations = []
               ; ret_type_constraint = None
               }
             , _ ) ->
           Location.raise_errorf
-            ~loc:name.loc
+            ~loc:name.ppat_loc
             "Unsupported function: must have a return type annotation."
-        | Pexp_function (_ :: _ :: _, _, _) ->
+        | Pexp_function _ ->
           Location.raise_errorf
-            ~loc:name.loc
-            "Unsupported function: multiple arguments are not yet supported."
+            ~loc:name.ppat_loc
+            "Unsupported function: mode annotations are not supported."
         | _ ->
           Location.raise_errorf
-            ~loc:name.loc
-            "Unsupported hot-reload value: must be a function with type annotations."
+            ~loc:name.ppat_loc
+            "Unsupported hot-reload value: must be a function with type annotations on \
+             every argument and the return type."
       in
       let function_type =
-        Ppxlib_jane.Ast_builder.Default.tarrow ~loc:name.loc arg_types return_type
+        Ppxlib_jane.Ast_builder.Default.tarrow ~loc:name.ppat_loc arg_types return_type
       in
-      [%stri
-        let [%p name.txt] =
-          Sriracha.register [%e body] ~__FUNCTION__ [%e typerep function_type]
-          |> Staged.unstage
-        ;;])
+      let body =
+        let loc = body.pexp_loc in
+        [%expr
+          Sriracha.register
+            [%e body]
+            ~__FUNCTION__
+            [%e ghostify#expression @@ typerep function_type]
+          |> Staged.unstage]
+      in
+      let loc =
+        { (Expansion_context.Extension.extension_point_loc ctxt) with loc_ghost = true }
+      in
+      [%stri let [%p name] = [%e body]])
 ;;
 
 let () = Driver.V2.register_transformation ~extensions:[ extension ] "sriracha"

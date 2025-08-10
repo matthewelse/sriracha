@@ -48,7 +48,7 @@ let hot_reloader ~dynlib =
     then return ()
     else (
       md5sum := new_md5sum;
-      let tmp_file = Filename_unix.temp_file "dynlib" "cmxs" in
+      let tmp_file = Filename_unix.temp_file "sriracha" "cmxs" in
       let%bind () =
         Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
       in
