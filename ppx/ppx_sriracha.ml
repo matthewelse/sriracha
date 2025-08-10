@@ -13,6 +13,26 @@ let rec typerep (typ : core_type) : expression =
   | other -> [%expr [%typerep_of: [%t other]]]
 ;;
 
+let extract_param_type = function
+  | { pparam_desc = Pparam_val (Nolabel, None, arg_pat); _ } ->
+    let loc = arg_pat.ppat_loc in
+    (match arg_pat with
+     | [%pat? ([%p? _] : [%t? arg_type])] -> arg_type
+     | [%pat? ()] -> [%type: unit]
+     | _ ->
+       Location.raise_errorf
+         ~loc:arg_pat.ppat_loc
+         "Unsupported function argument: all arguments must have a type annotation.")
+  | { pparam_desc = Pparam_val (_, _, arg_pat); _ } ->
+    Location.raise_errorf
+      ~loc:arg_pat.ppat_loc
+      "Unsupported function argument: labelled and optional arguments are not supported."
+  | { pparam_desc = Pparam_newtype _; pparam_loc; _ } ->
+    Location.raise_errorf
+      ~loc:pparam_loc
+      "Unsupported function argument: locally abstract types are not supported."
+;;
+
 let extension =
   Extension.V3.declare
     "hot"
@@ -20,27 +40,23 @@ let extension =
     Ast_pattern.(
       pstr (pstr_value nonrecursive (value_binding ~pat:__' ~expr:__ ^:: nil) ^:: nil))
     (fun ~ctxt:_ name body ->
-      let loc = Location.none in
-      let arg_type, return_type =
+      let loc = name.loc in
+      let arg_types, return_type =
         match body.pexp_desc with
         | Pexp_function
-            ( [ { pparam_desc = Pparam_val (Nolabel, None, arg_pat); _ } ]
+            ( args
             , { mode_annotations = []
               ; ret_mode_annotations = []
               ; ret_type_constraint = Some (Pconstraint return_type)
               }
             , _ ) ->
-          let arg_type =
-            match arg_pat with
-            | [%pat? ([%p? _] : [%t? arg_type])] -> arg_type
-            | [%pat? ()] -> [%type: unit]
-            | _ ->
-              Location.raise_errorf
-                ~loc:arg_pat.ppat_loc
-                "Unsupported function argument: all arguments must have a type \
-                 annotation."
-          in
-          arg_type, return_type
+          ( List.map
+              ~f:(fun param : Ppxlib_jane.Shim.arrow_argument ->
+                let type_ = extract_param_type param in
+                { arg_label = Nolabel; arg_modes = []; arg_type = type_ })
+              args
+          , ({ result_modes = []; result_type = return_type }
+             : Ppxlib_jane.Shim.arrow_result) )
         | Pexp_function
             ( [ { pparam_desc = Pparam_val (Nolabel, None, [%pat? (_ : [%t? _])]); _ } ]
             , { mode_annotations = []
@@ -60,13 +76,12 @@ let extension =
             ~loc:name.loc
             "Unsupported hot-reload value: must be a function with type annotations."
       in
+      let function_type =
+        Ppxlib_jane.Ast_builder.Default.tarrow ~loc:name.loc arg_types return_type
+      in
       [%stri
         let [%p name.txt] =
-          Sriracha.register
-            [%e body]
-            ~__FUNCTION__
-            [%e typerep arg_type]
-            [%e typerep return_type]
+          Sriracha.register [%e body] ~__FUNCTION__ [%e typerep function_type]
           |> Staged.unstage
         ;;])
 ;;

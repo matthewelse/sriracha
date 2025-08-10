@@ -1,6 +1,6 @@
 (library
  (name ppx_sriracha)
- (libraries core ppxlib)
+ (libraries core ppxlib ppxlib_jane)
  (kind ppx_rewriter)
  (preprocess
   (pps ppx_jane ppxlib.metaquot)))

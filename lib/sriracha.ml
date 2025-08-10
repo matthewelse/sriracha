@@ -7,8 +7,7 @@ module Thunk = struct
   type t =
     | T :
         { f : 'args -> 'res
-        ; arg_typerep : 'args Typerep.t
-        ; res_typerep : 'res Typerep.t
+        ; typerep : ('args -> 'res) Typerep.t
         }
         -> t
 end
@@ -62,26 +61,16 @@ let hot_reloader ~dynlib =
   reload dynlib ~f:(fun main -> main ()) ~on_error:Error.raise
 ;;
 
-let register
-  (type a r)
-  ~__FUNCTION__:func
-  (f : a -> r)
-  (arg_rep : a Typerep.t)
-  (res_rep : r Typerep.t)
-  =
+let register (type a r) ~__FUNCTION__:func (f : a -> r) (f_typerep : (a -> r) Typerep.t) =
   (* TODO: check that this is compatible with the existing function in the jump table. If
      the types mismatch, you probably want to restart the main function or something
      drastic. *)
-  Hashtbl.set
-    jump_table
-    ~key:func
-    ~data:(T { f; arg_typerep = arg_rep; res_typerep = res_rep });
+  Hashtbl.set jump_table ~key:func ~data:(T { f; typerep = f_typerep });
   Core.print_s [%message "set up jump table" (func : string)];
   Staged.stage (fun (arg : a) ->
     match Hashtbl.find jump_table func with
     | None -> f arg
-    | Some (T { f; arg_typerep; res_typerep }) ->
-      let T = Typerep.same_witness_exn arg_rep arg_typerep in
-      let T = Typerep.same_witness_exn res_rep res_typerep in
+    | Some (T { f; typerep }) ->
+      let T = Typerep.same_witness_exn f_typerep typerep in
       f arg)
 ;;
