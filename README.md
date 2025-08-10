@@ -1,7 +1,7 @@
 <h1 align="center">🌶️ <span style="font-family: monospace">sriracha</span> 🌶️</h1>
 
 <p align="center">
-  <i align="center">Type-safe ⚡️ hot reloading ⚡️ for OCaml 🐪</i>
+  <i align="center">Type-safe ⚡️ hot <s>sauce</s> source reloading ⚡️ for OCaml 🐪</i>
 </p>
 
 ## Introduction
