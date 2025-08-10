@@ -10,7 +10,9 @@ end
 
 exception Hot_reload of Main.t
 
+let on_reload_hooks = ref []
 let start_with_hot_reloading main = raise (Hot_reload main)
+let add_reload_hook f = on_reload_hooks := f :: !on_reload_hooks
 
 module App = struct
   type t =
@@ -29,6 +31,12 @@ module App = struct
         "[with_hot_reloading] was not called by the hot-loaded function"
     with
     | Dynlink.Error (Library's_module_initializers_failed (Hot_reload main)) -> Ok main
+    | Dynlink.Error (Inconsistent_import module_name) ->
+      Or_error.error_string
+        (Stdlib.Format.sprintf
+           "A dependency ([%s]) of your hot-reloadable module was changed. You need to \
+            restart."
+           module_name)
     | exn -> Or_error.of_exn exn
   ;;
 
@@ -41,7 +49,9 @@ module App = struct
     let tmp_path = Bytes.to_string tmp_path in
     Unix.system (Stdlib.Format.sprintf "cp %s %s" t.path_to_cmxs tmp_path)
     |> (ignore : Unix.process_status -> unit);
-    Or_error.map (load tmp_path) ~f:(fun main -> t.main <- main)
+    Or_error.map (load tmp_path) ~f:(fun main ->
+      t.main <- main;
+      List.iter !on_reload_hooks ~f:(fun hook -> hook ()))
   ;;
 end
 

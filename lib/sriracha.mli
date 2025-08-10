@@ -15,6 +15,8 @@ end
     hot loader as the main entry point to your app. *)
 val start_with_hot_reloading : Main.t -> unit
 
+val add_reload_hook : (unit -> unit) -> unit
+
 module For_loaders : sig
   module App : sig
     type t

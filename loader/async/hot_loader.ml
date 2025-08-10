@@ -1,6 +1,7 @@
 open! Core
 open! Async
 
+(* This is how you specify the main function of your app. *)
 type Sriracha.Main.t += Async of (unit -> unit Deferred.t)
 
 let before_reload () =

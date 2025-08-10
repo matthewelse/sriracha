@@ -32,7 +32,7 @@ should (perhaps surprisingly) depend on your loader[^loader], `ppx_sriracha`, an
 A basic example of a loader is provided in `loader/`, but for more complicated use-cases,
 you likely want to build your own loader.
 
-See [hot_loader.ml](loader/hot_loader.ml) for a basic hot-loader built on top of async.
+See [hot_loader.ml](loader/async/hot_loader.ml) for a basic hot-loader built on top of async.
 
 See [example.ml](example/example.ml) for an example application.
 
@@ -48,6 +48,18 @@ $ _build/default/loader/bin/loader.exe _build/default/example/example.cmxs
 
 You can then make edits to `example.ml` (e.g. changing the text printed by `do_something`).
 Notice how only changes in, or "downstream" of `do_something` affect the runtime behaviour.
+
+<h3>Running the example dream application</h3>
+
+```bash
+# run this in one terminal
+$ dune build example/dream/sriracha_dream_example.cmxs && dune exec loader/lwt/bin/loader.exe _build/default/example/dream/sriracha_dream_example.cmxs 
+
+# in another terminal
+$ dune build -w example/dream/sriracha_dream_example.cmxs
+```
+
+You can then make edits to `server.ml` (e.g. changing the text returned to the user).
 
 ## How it works
 
