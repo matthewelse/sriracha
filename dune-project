@@ -7,20 +7,20 @@
 (source
  (github username/reponame))
 
-(authors "Author Name <author@example.com>")
+(authors "Matthew Else <matthewelse1997@gmail.com>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "Maintainer Name <matthewelse1997@gmail.com>")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/matthewelse/sriracha)
 
 (package
  (name sriracha)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
+ (synopsis "🌶️ ⚡️ hot reloading ⚡️ for OCaml")
+ (description "A hot reloading library for OCaml, built using Dynlink.")
+ (depends ocaml dune ppx_jane ppxlib ppxlib_jane async core core_unix)
  (tags
-  ("add topics" "to describe" your project)))
+  ("hot reloading")))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
