@@ -50,7 +50,7 @@ Notice how only changes in, or "downstream" of `do_something` affect the runtime
 $ dune build example/dream/dream_example.cmxs loader/lwt/bin/loader.exe --watch
 
 # in another terminal
-$ _build/default/loader/lwt/bin/loader.exe _build/default/example/dream/dream_example.cmxs
+$ _build/default/loader/lwt/bin/loader.exe _build/default/example/dream/dream_example.cmxs -L digestif.c -L dream
 ```
 
 You can then make edits to `server.ml` (e.g. changing the text returned to the user).

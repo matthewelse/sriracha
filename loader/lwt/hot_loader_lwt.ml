@@ -27,24 +27,6 @@ module Lwt = struct
   ;;
 end
 
-let _ = Lwt_condition.signal
-
-module Dream = struct
-  include Dream
-
-  module Response = struct
-    type t = response
-
-    include Typerep_lib.Make_typename.Make0 (struct
-        type nonrec t = t
-
-        let name = "Dream.response"
-      end)
-  end
-
-  let typerep_of_response : response Typerep.t = Named (Response.named, Second Value)
-end
-
 (* This is how you specify the main function of your app. *)
 type Sriracha.Main.t += Lwt of (unit -> unit Lwt.t)
 
@@ -59,10 +41,9 @@ let rec start_watching app =
   let%lwt () = Lwt_unix.sleep 1.0 in
   before_reload ();
   (match Sriracha.For_loaders.App.hot_reload app with
-   | Ok () -> Dream.debug (fun log -> log "⚡️ hot reload ⚡️ successful\n%!")
+   | Ok () -> Logs.debug (fun log -> log "⚡️ hot reload ⚡️ successful")
    | Error err ->
-     Dream.error (fun log ->
-       log "🥵 error while hot reloading: %s\n" (Error.to_string_hum err)));
+     Logs.err (fun log -> log "Error while hot reloading: %s" (Error.to_string_hum err)));
   start_watching app
 ;;
 
@@ -72,15 +53,22 @@ let main cmxs =
   let main = Sriracha.For_loaders.App.main app in
   match main with
   | Lwt f ->
-    Dream.log "⚡️ starting app with hot reloading ⚡️";
+    Logs.info (fun log -> log "⚡️ starting app with hot reloading ⚡️");
     f ()
   | _ -> failwith "Unsupported main function."
 ;;
+
+let () = Findlib.init ()
 
 let command =
   Command.basic
     ~summary:"run an app with hot reloading"
     [%map_open.Command
-      let cmxs = anon ("PATH" %: string) in
-      fun () -> Lwt_main.run (main cmxs)]
+      let cmxs = anon ("PATH" %: string)
+      and extra_libraries =
+        flag "L" (listed string) ~doc:"LIBS additional libraries to dynamically load"
+      in
+      fun () ->
+        Fl_dynload.load_packages extra_libraries;
+        Lwt_main.run (main cmxs)]
 ;;
