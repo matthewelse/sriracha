@@ -32,18 +32,42 @@ let%hot reloadable () : unit =
 ;;
 
 let main () =
-  Clock_ns.every Time_ns.Span.second (fun () -> do_something "hello, world!" ());
+  Clock_ns.every Time_ns.Span.second (fun () -> reloadable ());
   Deferred.never ()
 ;;
 
 let () = Sriracha.with_hot_reloading main
 ```
 
-## Future functionality
+I'd suggest building your app as a _library_ with [dune](https://github.com/ocaml/dune),
+and for testing purposes, build the loader app from this repo. You should then be able to
+run the app with live reloading as follows (these commands work if you run them in this repo):
+
+```bash
+# run this in one terminal
+$ dune build example/example.cmxs loader/bin/loader.exe --auto-promote --watch
+
+# in another terminal
+$ _build/default/loader/bin/loader.exe _build/default/example/example.cmxs
+```
+
+Then, make edits to `example.ml` (e.g. changing the text printed by `reloadable`). Notice
+how only changes in, or "downstream" of `reloadable` affect the runtime behaviour.
+
+## How it works
+
+Sriracha makes use of the OCaml [`Dynlink`](https://ocaml.org/manual/5.3/api/Dynlink.html#top)
+library. It builds a type-safe jump table from function name to function pointer, and redirects
+calls to hot-reloadable functions via the jump table. This jump table is updated as the program
+live reloads.
+
+## Todo list
 
 - [ ] add a flag to `ppx_sriracha` to statically remove all of the hot-reloading points in
   release builds.
-
 - [ ] handle nested function calls correctly (e.g. detect a new function being called
   within an old function.
+- [ ] add some better notes about caveats/limitations of the library, e.g. the interaction
+  with global state, etc.
+- [ ] build a more complete example, e.g. a web server with Dream.
 
