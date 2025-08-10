@@ -90,7 +90,7 @@ let extension =
       let body =
         let loc = body.pexp_loc in
         [%expr
-          Sriracha.register
+          (Sriracha.For_ppx_sriracha.register [@alert "-use_ppx_sriracha"])
             [%e body]
             ~__FUNCTION__
             [%e ghostify#expression @@ typerep function_type]

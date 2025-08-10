@@ -2,7 +2,7 @@ open! Core
 open! Async
 
 let%hot do_something (prefix : string) () : unit =
-  for i = 1 to 1 do
+  for i = 1 to 3 do
     print_endline [%string "%{prefix} %{i#Int}"]
   done
 ;;
@@ -12,4 +12,4 @@ let main () =
   Deferred.never ()
 ;;
 
-let () = Sriracha.with_hot_reloading main
+let () = Sriracha.start_with_hot_reloading (Hot_loader.Async main)

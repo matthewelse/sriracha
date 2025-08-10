@@ -11,37 +11,32 @@ Sriracha is a library for type-safe hot-reloading of OCaml functions, inspired b
 
 ## Usage
 
-See [example](example/example.ml) for a working example.
+🌶️ `sriracha` 🌶️ consist of two parts: the loader, and the application.
 
-🌶️ `sriracha` 🌶️ requires you to tweak the way you start your application, at
-least when you want to run it for the purposes of live-reloading.
+The loader is responsible for locating and starting the application[^start], and determining when
+to reload.
 
-You should write a `main` function with type `unit -> unit Async.Deferred.t`, and
-annotate any hot-reloadable functions with `let%hot`.
+[^start]: The sriracha library is deliberately agnostic to how you build your app, and has minimal
+    dependencies. It just provides the bare minimum reloading abstraction -- you can bring the file
+    watcher and/or concurrency framework.
 
-> Note that any hot-reloadable functions require explicit type annotations, and require
-> `Core` and `ppx_typerep_conv` to be available (since we use `Typerep.t` to ensure
-> type-safety under the hood).
+The application provides a loader-specific entry point, and contains hot-reloadable
+functions.
 
-```ocaml
-open! Core
-open! Async
+Both the loader and application should depend on the core Sriracha library. Your application
+should (perhaps surprisingly) depend on your loader[^loader], `ppx_sriracha`, and `ppx_typerep_conv`.
 
-let%hot reloadable () : unit =
-  print_endline "hello, world!"
-;;
+[^loader]: This allows your loader to specify what type of main function it expects (`unit -> unit`,
+`unit -> unit Deferred.t`, etc.).
 
-let main () =
-  Clock_ns.every Time_ns.Span.second (fun () -> reloadable ());
-  Deferred.never ()
-;;
+A basic example of a loader is provided in `loader/`, but for more complicated use-cases,
+you likely want to build your own loader.
 
-let () = Sriracha.with_hot_reloading main
-```
+See [hot_loader.ml](loader/hot_loader.ml) for a basic hot-loader built on top of async.
 
-I'd suggest building your app as a _library_ with [dune](https://github.com/ocaml/dune),
-and for testing purposes, build the loader app from this repo. You should then be able to
-run the app with live reloading as follows (these commands work if you run them in this repo):
+See [example.ml](example/example.ml) for an example application.
+
+<h3>Running the example application</h3>
 
 ```bash
 # run this in one terminal
@@ -51,8 +46,8 @@ $ dune build example/example.cmxs loader/bin/loader.exe --auto-promote --watch
 $ _build/default/loader/bin/loader.exe _build/default/example/example.cmxs
 ```
 
-Then, make edits to `example.ml` (e.g. changing the text printed by `reloadable`). Notice
-how only changes in, or "downstream" of `reloadable` affect the runtime behaviour.
+You can then make edits to `example.ml` (e.g. changing the text printed by `do_something`).
+Notice how only changes in, or "downstream" of `do_something` affect the runtime behaviour.
 
 ## How it works
 
@@ -86,6 +81,7 @@ code as necessary.
 - [ ] add some better notes about caveats/limitations of the library, e.g. the interaction
   with global state, etc.
 - [ ] build a more complete example, e.g. a web server with Dream.
+- [ ] thread safety?
 
 <!-- for some reason this doesn't render properly as ## -->
 <h2>Misc notes</h2>
