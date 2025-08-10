@@ -1,5 +1,0 @@
-(library
- (name example)
- (libraries async hot_loader sriracha)
- (preprocess
-  (pps ppx_jane ppx_sriracha)))

@@ -13,15 +13,9 @@ Sriracha is a library for type-safe hot-reloading of OCaml functions, inspired b
 
 🌶️ `sriracha` 🌶️ consist of two parts: the loader, and the application.
 
-The loader is responsible for locating and starting the application[^start], and determining when
-to reload.
-
-[^start]: The sriracha library is deliberately agnostic to how you build your app, and has minimal
-    dependencies. It just provides the bare minimum reloading abstraction -- you can bring the file
-    watcher and/or concurrency framework.
-
-The application provides a loader-specific entry point, and contains hot-reloadable
-functions.
+In short, the loader is a lightweight application that dynamically loads your application,
+starts it, and decides when to live-reload your application. The `sriracha` library provides
+the glue between the two.
 
 Both the loader and application should depend on the core Sriracha library. Your application
 should (perhaps surprisingly) depend on your loader[^loader], `ppx_sriracha`, and `ppx_typerep_conv`.
@@ -29,21 +23,21 @@ should (perhaps surprisingly) depend on your loader[^loader], `ppx_sriracha`, an
 [^loader]: This allows your loader to specify what type of main function it expects (`unit -> unit`,
 `unit -> unit Deferred.t`, etc.).
 
-A basic example of a loader is provided in `loader/`, but for more complicated use-cases,
-you likely want to build your own loader.
+Basic example of loaders for Lwt (+Dream) and Async are provided in `loader/`, but for more
+complicated use-cases, you likely want to build your own loader.
 
 See [hot_loader.ml](loader/async/hot_loader.ml) for a basic hot-loader built on top of async.
 
-See [example.ml](example/example.ml) for an example application.
+See [example.ml](example/basic/basic.ml) for an example application.
 
 <h3>Running the example application</h3>
 
 ```bash
 # run this in one terminal
-$ dune build example/example.cmxs loader/bin/loader.exe --auto-promote --watch
+$ dune build example/basic/basic.cmxs loader/async/bin/loader.exe --watch
 
 # in another terminal
-$ _build/default/loader/bin/loader.exe _build/default/example/example.cmxs
+$ _build/default/loader/async/bin/loader.exe _build/default/example/basic/basic.cmxs
 ```
 
 You can then make edits to `example.ml` (e.g. changing the text printed by `do_something`).
@@ -53,10 +47,10 @@ Notice how only changes in, or "downstream" of `do_something` affect the runtime
 
 ```bash
 # run this in one terminal
-$ dune build example/dream/sriracha_dream_example.cmxs && dune exec loader/lwt/bin/loader.exe _build/default/example/dream/sriracha_dream_example.cmxs 
+$ dune build example/dream/dream_example.cmxs loader/lwt/bin/loader.exe --watch
 
 # in another terminal
-$ dune build -w example/dream/sriracha_dream_example.cmxs
+$ _build/default/loader/lwt/bin/loader.exe _build/default/example/dream/dream_example.cmxs
 ```
 
 You can then make edits to `server.ml` (e.g. changing the text returned to the user).

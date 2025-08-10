@@ -1,5 +1,5 @@
 (library
  (name hot_loader_lwt)
- (libraries  lwt lwt.unix core dream dynlink sriracha)
+ (libraries core dream dynlink logs lwt lwt.unix sriracha)
  (preprocess
   (pps ppx_jane lwt_ppx)))

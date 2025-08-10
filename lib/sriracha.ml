@@ -5,7 +5,6 @@ let debug = false
 
 module Main = struct
   type t = ..
-  type t += Sync of (unit -> unit)
 end
 
 exception Hot_reload of Main.t

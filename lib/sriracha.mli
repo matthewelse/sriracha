@@ -8,12 +8,15 @@ module Main : sig
       core of sriracha. *)
 
   type t = ..
-  type t += Sync of (unit -> unit)
 end
 
 (** Use this to specify the main entry-point to your program. This will be used by your
     hot loader as the main entry point to your app. *)
-val start_with_hot_reloading : Main.t -> unit
+val start_with_hot_reloading
+  :  Main.t
+     (** this should be a constructor specific to your loader, e.g.
+         [Hot_loader_async.Async main], or [Hot_loader_lwt.Lwt main]. *)
+  -> unit
 
 val add_reload_hook : (unit -> unit) -> unit
 

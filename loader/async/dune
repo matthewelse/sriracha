@@ -1,5 +1,5 @@
 (library
- (name hot_loader)
+ (name hot_loader_async)
  (libraries async core dynlink sriracha)
  (preprocess
   (pps ppx_jane)))

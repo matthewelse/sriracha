@@ -29,10 +29,8 @@ let command =
         start_watching app;
         let main = Sriracha.For_loaders.App.main app in
         match main with
-        | Sriracha.Main.Sync f ->
+        | Async f ->
           print_endline "⚡️ starting app with hot reloading ⚡️";
-          f ();
-          return ()
-        | Async f -> f ()
+          f ()
         | _ -> failwith "Unsupported main function."]
 ;;

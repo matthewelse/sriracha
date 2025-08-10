@@ -1,3 +1,3 @@
 (executable
  (name loader)
- (libraries hot_loader))
+ (libraries hot_loader_async))

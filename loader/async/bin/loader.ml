@@ -1,1 +1,1 @@
-let () = Command_unix.run Hot_loader.command
+let () = Command_unix.run Hot_loader_async.command

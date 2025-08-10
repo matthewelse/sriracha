@@ -48,16 +48,10 @@ s.onerror = function(event) {
     retry_interval_ms
 ;;
 
-let ws = ref []
-
-let () =
-  Sriracha.add_reload_hook (fun () ->
-    Lwt.dont_wait
-      (fun () ->
-        let%lwt () = List.map ~f:(fun ws -> Dream.close_websocket ws) !ws |> Lwt.join in
-        ws := [];
-        Lwt.return_unit)
-      raise)
+let reload : unit Lwt_condition.t =
+  let var = Lwt_condition.create () in
+  Sriracha.add_reload_hook (fun () -> Lwt_condition.broadcast var ());
+  var
 ;;
 
 let livereload next_handler request =
@@ -65,7 +59,11 @@ let livereload next_handler request =
   | target when String.equal target route ->
     Dream.websocket
     @@ fun socket ->
-    ws := socket :: !ws;
+    Lwt.dont_wait
+      (fun () ->
+        let%lwt () = Lwt_condition.wait reload in
+        Dream.close_websocket socket)
+      raise;
     let%lwt _ = Dream.receive socket in
     Dream.close_websocket socket
   | _ ->
