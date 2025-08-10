@@ -1,4 +1,1 @@
-let () =
-  let (_ : unit Async.Deferred.t) = Hot_loader.main () in
-  Async.Scheduler.go () |> Core.Nothing.unreachable_code
-;;
+let () = Command_unix.run Hot_loader.command

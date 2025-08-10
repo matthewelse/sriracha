@@ -1,9 +1,7 @@
 open! Core
 open! Async
 
-let _link_async () = Async.Deferred.return ()
-
-let main () =
+let command =
   (* Notes from making this work:
 
      - dead code elimination can mean that sriracha doesn't get linked into the binary,
@@ -16,5 +14,9 @@ let main () =
        a static version (to ensure that all of your dependencies are linked correctly), and
        a dynamic version (to ensure that
   *)
-  Sriracha.hot_reloader ~dynlib:"_build/default/example/example.cmxs"
+  Command.async
+    ~summary:"run an app with hot reloading"
+    [%map_open.Command
+      let cmxs = anon ("PATH" %: string) in
+      fun () -> Sriracha.hot_reloader ~dynlib:cmxs]
 ;;

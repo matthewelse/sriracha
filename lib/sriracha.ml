@@ -16,7 +16,6 @@ let jump_table : Thunk.t String.Table.t = String.Table.create ()
 let with_hot_reloading main = raise (Loaded main)
 
 let reload dynlib ~f ~on_error =
-  printf "loading: %s\n" dynlib;
   (* This is needed to stop [Ppx_expect_runtime] from complaining when we reload a file. *)
   (try (Ppx_expect_runtime.Current_file.unset [@alert "-ppx_expect_runtime"]) () with
    | _ -> ());
@@ -26,7 +25,7 @@ let reload dynlib ~f ~on_error =
       (Error.of_string "[with_hot_reloading] was not called by the hot-loaded function")
   with
   | Dynlink.Error (Library's_module_initializers_failed (Loaded main)) ->
-    print_endline "successfully reloaded!";
+    print_endline [%string "⚡️ successfully reloaded %{Filename.basename dynlib}! ⚡️"];
     f main
   | exn ->
     Core.eprint_s [%message "exception raised when loading" (exn : Exn.t)];
@@ -34,8 +33,7 @@ let reload dynlib ~f ~on_error =
 ;;
 
 let hot_reloader ~dynlib =
-  print_endline "- starting hot reloader -";
-  printf "loading: %s\n" dynlib;
+  print_endline "🌶️ starting hot reloader 🌶️";
   let%bind md5sum = Process.run_exn ~prog:"md5sum" ~args:[ dynlib ] () in
   let md5sum = ref md5sum in
   (* TODO: rip out all of the async code, and use threads instead *)
@@ -43,12 +41,14 @@ let hot_reloader ~dynlib =
      if the file differs, reload. *)
   Deferred.forever () (fun () ->
     let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec 2) in
-    let%bind new_md5sum = Process.run_exn ~prog:"md5sum" ~args:[ dynlib ] () in
+    let%bind new_md5sum =
+      Process.run_exn ~accept_nonzero_exit:[ 1 ] ~prog:"md5sum" ~args:[ dynlib ] ()
+    in
     if String.equal !md5sum new_md5sum
     then return ()
     else (
       md5sum := new_md5sum;
-      let tmp_file = Filename_unix.temp_file "sriracha" "cmxs" in
+      let tmp_file = Filename_unix.temp_file "sriracha" ".cmxs" in
       let%bind () =
         Process.run_expect_no_output_exn ~prog:"cp" ~args:[ dynlib; tmp_file ] ()
       in
@@ -66,7 +66,7 @@ let register (type a r) ~__FUNCTION__:func (f : a -> r) (f_typerep : (a -> r) Ty
      the types mismatch, you probably want to restart the main function or something
      drastic. *)
   Hashtbl.set jump_table ~key:func ~data:(T { f; typerep = f_typerep });
-  print_s [%message "set up jump table" (func : string)];
+  print_endline [%string "🚀 registered: [%{func}] 🚀"];
   Staged.stage (fun (arg : a) ->
     match Hashtbl.find jump_table func with
     | None -> f arg
