@@ -61,6 +61,21 @@ library. It builds a type-safe jump table from function name to function pointer
 calls to hot-reloadable functions via the jump table. This jump table is updated as the program
 live reloads.
 
+There are two parts to an application using Sriracha: the loader, and the application.
+
+The loader is a very simple (approximately application agnostic) executable, which bundles
+all of the application's dependencies (see notes below -- this is quite annoying), and is
+responsible for (re-)loading the application, and launching it.
+
+The application is just the application you want to live reload. For the most part, all you
+need to do is to define an entry point for the loader to call, and to annotate reloadable
+functions as `let%hot`.
+
+It's likely that a more complete integration with this library will require e.g. your web
+framework to be aware of hot reloading. In the future, we'll likely provide hooks to
+receive updates about e.g. hot reloads happening to clean-up after old versions of your
+code as necessary.
+
 <!-- for some reason this doesn't render properly as ## without this comment here -->
 ## Ideas
 
@@ -71,3 +86,15 @@ live reloads.
 - [ ] add some better notes about caveats/limitations of the library, e.g. the interaction
   with global state, etc.
 - [ ] build a more complete example, e.g. a web server with Dream.
+
+<!-- for some reason this doesn't render properly as ## -->
+<h2>Misc notes</h2>
+
+Reasons this was hard to get right:
+
+- Dependencies have to be linked into the loader, and it's quite easy for those dependencies
+  to accidentally be dead-code eliminated.
+- User applications can't have both dynamic and static versions of a single application
+  (which would also solve the dependency problem), since you end up with module name clashes.
+  _Maybe we can do some name mangling?_
+
