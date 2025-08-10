@@ -1,7 +1,7 @@
 <h1 align="center">🌶️ <span style="font-family: monospace">sriracha</span> 🌶️</h1>
 
 <p align="center">
-  <i align="center">Type-safe hot reloading for OCaml 🐪🚀</i>
+  <i align="center">Type-safe ⚡️ hot reloading ⚡️ for OCaml 🐪</i>
 </p>
 
 ## Introduction
@@ -61,7 +61,8 @@ library. It builds a type-safe jump table from function name to function pointer
 calls to hot-reloadable functions via the jump table. This jump table is updated as the program
 live reloads.
 
-## Todo list
+<!-- for some reason this doesn't render properly as ## without this comment here -->
+## Ideas
 
 - [ ] add a flag to `ppx_sriracha` to statically remove all of the hot-reloading points in
   release builds.
@@ -70,4 +71,3 @@ live reloads.
 - [ ] add some better notes about caveats/limitations of the library, e.g. the interaction
   with global state, etc.
 - [ ] build a more complete example, e.g. a web server with Dream.
-
