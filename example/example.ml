@@ -3,7 +3,7 @@ open! Async
 
 let%hot do_something (prefix : string) () : unit =
   for i = 1 to 1 do
-    Core.print_endline [%string "%{prefix} %{i#Int}"]
+    print_endline [%string "%{prefix} %{i#Int}"]
   done
 ;;
 
