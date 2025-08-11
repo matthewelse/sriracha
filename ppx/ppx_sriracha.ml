@@ -1,6 +1,14 @@
 open! Core
 open Ppxlib
 
+let profile = ref ""
+
+let is_dev () =
+  if String.equal !profile ""
+  then failwith "Mode not set"
+  else String.equal !profile "dev"
+;;
+
 let rec typerep (typ : core_type) : expression =
   (* ppx_typerep_conv doesn't support arrow types for some reason, so convert
      them ourselves. *)
@@ -40,7 +48,7 @@ let ghostify =
   end
 ;;
 
-let extension =
+let hot_extension =
   Extension.V3.declare
     "hot"
     Structure_item
@@ -48,58 +56,84 @@ let extension =
       (* let $name = $body *)
       pstr (pstr_value nonrecursive (value_binding ~pat:__ ~expr:__ ^:: nil) ^:: nil))
     (fun ~ctxt name body ->
-      let arg_types, return_type =
-        match body.pexp_desc with
-        | Pexp_function
-            ( args
-            , { mode_annotations = []
-              ; ret_mode_annotations = []
-              ; ret_type_constraint = Some (Pconstraint return_type)
-              }
-            , _ ) ->
-          ( List.map
-              ~f:(fun param : Ppxlib_jane.Shim.arrow_argument ->
-                let type_ = extract_param_type param in
-                { arg_label = Nolabel; arg_modes = []; arg_type = type_ })
-              args
-          , ({ result_modes = []; result_type = return_type }
-             : Ppxlib_jane.Shim.arrow_result) )
-        | Pexp_function
-            ( _
-            , { mode_annotations = []
-              ; ret_mode_annotations = []
-              ; ret_type_constraint = None
-              }
-            , _ ) ->
-          Location.raise_errorf
-            ~loc:name.ppat_loc
-            "Unsupported function: must have a return type annotation."
-        | Pexp_function _ ->
-          Location.raise_errorf
-            ~loc:name.ppat_loc
-            "Unsupported function: mode annotations are not supported."
-        | _ ->
-          Location.raise_errorf
-            ~loc:name.ppat_loc
-            "Unsupported hot-reload value: must be a function with type annotations on \
-             every argument and the return type."
-      in
-      let function_type =
-        Ppxlib_jane.Ast_builder.Default.tarrow ~loc:name.ppat_loc arg_types return_type
-      in
-      let body =
-        let loc = body.pexp_loc in
-        [%expr
-          (Sriracha.For_ppx_sriracha.register [@alert "-use_ppx_sriracha"])
-            [%e body]
-            ~__FUNCTION__
-            [%e ghostify#expression @@ typerep function_type]
-          |> Staged.unstage]
-      in
-      let loc =
-        { (Expansion_context.Extension.extension_point_loc ctxt) with loc_ghost = true }
-      in
-      [%stri let [%p name] = [%e body]])
+      if is_dev ()
+      then (
+        let arg_types, return_type =
+          match body.pexp_desc with
+          | Pexp_function
+              ( args
+              , { mode_annotations = []
+                ; ret_mode_annotations = []
+                ; ret_type_constraint = Some (Pconstraint return_type)
+                }
+              , _ ) ->
+            ( List.map
+                ~f:(fun param : Ppxlib_jane.Shim.arrow_argument ->
+                  let type_ = extract_param_type param in
+                  { arg_label = Nolabel; arg_modes = []; arg_type = type_ })
+                args
+            , ({ result_modes = []; result_type = return_type }
+               : Ppxlib_jane.Shim.arrow_result) )
+          | Pexp_function
+              ( _
+              , { mode_annotations = []
+                ; ret_mode_annotations = []
+                ; ret_type_constraint = None
+                }
+              , _ ) ->
+            Location.raise_errorf
+              ~loc:name.ppat_loc
+              "Unsupported function: must have a return type annotation."
+          | Pexp_function _ ->
+            Location.raise_errorf
+              ~loc:name.ppat_loc
+              "Unsupported function: mode annotations are not supported."
+          | _ ->
+            Location.raise_errorf
+              ~loc:name.ppat_loc
+              "Unsupported hot-reload value: must be a function with type annotations on \
+               every argument and the return type."
+        in
+        let function_type =
+          Ppxlib_jane.Ast_builder.Default.tarrow ~loc:name.ppat_loc arg_types return_type
+        in
+        let body =
+          let loc = body.pexp_loc in
+          [%expr
+            (Sriracha.For_ppx_sriracha.register [@alert "-use_ppx_sriracha"])
+              [%e body]
+              ~__FUNCTION__
+              [%e ghostify#expression @@ typerep function_type]
+            |> Staged.unstage]
+        in
+        let loc =
+          { (Expansion_context.Extension.extension_point_loc ctxt) with loc_ghost = true }
+        in
+        [%stri let [%p name] = [%e body]])
+      else (
+        let loc =
+          { (Expansion_context.Extension.extension_point_loc ctxt) with loc_ghost = true }
+        in
+        [%stri let [%p name] = [%e body]]))
 ;;
 
-let () = Driver.V2.register_transformation ~extensions:[ extension ] "sriracha"
+let mode_extension =
+  Extension.V3.declare
+    "reload_enabled"
+    Expression
+    Ast_pattern.(pstr nil)
+    (fun ~ctxt ->
+      Ast_builder.Default.ebool
+        ~loc:(Expansion_context.Extension.extension_point_loc ctxt)
+        (is_dev ()))
+;;
+
+let () =
+  Driver.add_arg "-mode" (Stdlib.Arg.Set_string profile) ~doc:"PROFILE dune profile"
+;;
+
+let () =
+  Driver.V2.register_transformation
+    ~extensions:[ hot_extension; mode_extension ]
+    "sriracha"
+;;

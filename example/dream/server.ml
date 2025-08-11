@@ -6,11 +6,13 @@ let%hot request_handler () : string =
 ;;
 
 let () =
-  Sriracha.start_with_hot_reloading
-    (Lwt
-       (fun () ->
-         Dream.serve
-         @@ Dream.logger
-         @@ Live_reload.livereload
-         @@ Dream.router [ Dream.get "/" (fun _ -> request_handler () |> Dream.html) ]))
+  if [%reload_enabled]
+  then
+    Sriracha.start_with_hot_reloading
+      (Lwt
+         (fun () ->
+           Dream.serve
+           @@ Dream.logger
+           @@ Live_reload.livereload
+           @@ Dream.router [ Dream.get "/" (fun _ -> request_handler () |> Dream.html) ]))
 ;;

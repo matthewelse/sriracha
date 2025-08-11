@@ -2,4 +2,4 @@
  (name basic)
  (libraries async hot_loader_async sriracha)
  (preprocess
-  (pps ppx_jane ppx_sriracha)))
+  (pps ppx_jane ppx_sriracha -mode -- %{profile})))

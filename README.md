@@ -26,7 +26,7 @@ should (perhaps surprisingly) depend on your loader[^loader], `ppx_sriracha`, an
 Basic example of loaders for Lwt (+Dream) and Async are provided in `loader/`, but for more
 complicated use-cases, you likely want to build your own loader.
 
-See [hot_loader.ml](loader/async/hot_loader.ml) for a basic hot-loader built on top of async.
+See [hot_loader_async.ml](loader/async/hot_loader_async.ml) for a basic hot-loader built on top of async.
 
 See [example.ml](example/basic/basic.ml) for an example application.
 
@@ -80,13 +80,13 @@ code as necessary.
 <!-- for some reason this doesn't render properly as ## without this comment here -->
 ## Ideas
 
-- [ ] add a flag to `ppx_sriracha` to statically remove all of the hot-reloading points in
+- [x] add a flag to `ppx_sriracha` to statically remove all of the hot-reloading points in
   release builds.
 - [ ] handle nested function calls correctly (e.g. detect a new function being called
   within an old function.
 - [ ] add some better notes about caveats/limitations of the library, e.g. the interaction
   with global state, etc.
-- [ ] build a more complete example, e.g. a web server with Dream.
+- [x] build a more complete example, e.g. a web server with Dream.
 - [ ] thread safety?
 
 <!-- for some reason this doesn't render properly as ## -->

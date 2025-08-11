@@ -2,4 +2,4 @@
  (name dream_example)
  (libraries core dream hot_loader_lwt lambdasoup sriracha)
  (preprocess
-  (pps lwt_ppx ppx_sriracha ppx_typerep_conv)))
+  (pps lwt_ppx ppx_typerep_conv ppx_sriracha -mode -- %{profile})))

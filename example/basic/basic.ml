@@ -12,4 +12,7 @@ let main () =
   Deferred.never ()
 ;;
 
-let () = Sriracha.start_with_hot_reloading (Hot_loader_async.Async main)
+let () =
+  if [%reload_enabled]
+  then Sriracha.start_with_hot_reloading (Hot_loader_async.Async main)
+;;
