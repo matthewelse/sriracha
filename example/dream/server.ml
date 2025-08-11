@@ -1,8 +1,24 @@
 open! Core
 open! Hot_loader_lwt
 
+let html_to_string html = Format.asprintf "%a" (Tyxml.Html.pp ()) html
+
 let%hot request_handler () : string =
-  Dream.random 3 |> Dream.to_base64url |> Printf.sprintf "Hello, world! Random tag: %s"
+  let open Tyxml in
+  let html =
+    [%html
+      {|
+    <html>
+    <head><title>Home</title></head>
+    <body>
+      <h1>|}
+        [ Html.txt "Good morning, world!" ]
+        {|</h1>
+    </body>
+  </html>
+    |}]
+  in
+  html_to_string html
 ;;
 
 let () =
