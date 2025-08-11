@@ -38,10 +38,11 @@ let before_reload () =
 ;;
 
 let rec start_watching app =
-  let%lwt () = Lwt_unix.sleep 1.0 in
+  let%lwt () = Lwt_unix.sleep 0.1 in
   before_reload ();
   (match Sriracha.For_loaders.App.hot_reload app with
-   | Ok () -> Logs.debug (fun log -> log "⚡️ hot reload ⚡️ successful")
+   | Ok `reloaded -> Logs.info (fun log -> log "⚡️ hot reload ⚡️ successful")
+   | Ok `unchanged -> Logs.debug (fun log -> log "⚡️ hot reload ⚡️ skipped")
    | Error err ->
      Logs.err (fun log -> log "Error while hot reloading: %s" (Error.to_string_hum err)));
   start_watching app

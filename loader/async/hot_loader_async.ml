@@ -15,7 +15,8 @@ let start_watching app =
   Clock_ns.every Time_ns.Span.second (fun () ->
     before_reload ();
     match Sriracha.For_loaders.App.hot_reload app with
-    | Ok () -> eprintf "⚡️ hot reload ⚡️ successful\n%!"
+    | Ok `reloaded -> eprintf "⚡️ hot reload ⚡️ successful\n%!"
+    | Ok `unchanged -> ()
     | Error err -> eprintf "🥵 error while hot reloading: %s\n" (Error.to_string_hum err))
 ;;
 

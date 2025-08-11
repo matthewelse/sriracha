@@ -16,6 +16,7 @@ let add_reload_hook f = on_reload_hooks := f :: !on_reload_hooks
 module App = struct
   type t =
     { path_to_cmxs : string
+    ; mutable prev_path : string option
     ; mutable main : Main.t
     }
 
@@ -40,17 +41,28 @@ module App = struct
   ;;
 
   let hot_reload t =
-    if debug
-    then Stdlib.print_endline (Stdlib.Format.sprintf "hot_reload! %s\n" t.path_to_cmxs);
-    let tmpdir = Sys.getenv "TMPDIR" |> Option.value ~default:"/tmp/" in
-    let tmp_path = Bytes.of_string (tmpdir ^ "sriracha.cmxs." ^ "XXXXXX") in
-    mktemp ~template:tmp_path;
-    let tmp_path = Bytes.to_string tmp_path in
-    Unix.system (Stdlib.Format.sprintf "cp %s %s" t.path_to_cmxs tmp_path)
-    |> (ignore : Unix.process_status -> unit);
-    Or_error.map (load tmp_path) ~f:(fun main ->
-      t.main <- main;
-      List.iter !on_reload_hooks ~f:(fun hook -> hook ()))
+    match
+      Option.map t.prev_path ~f:(fun prev_path ->
+        Unix.system (Stdlib.Format.sprintf "cmp -s %s %s" prev_path t.path_to_cmxs))
+    with
+    | Some (WEXITED 0) -> Ok `unchanged
+    | Some (WEXITED 2) ->
+      (* file missing *)
+      Or_error.error_string "File missing"
+    | _ ->
+      if debug
+      then Stdlib.print_endline (Stdlib.Format.sprintf "hot_reload! %s\n" t.path_to_cmxs);
+      let tmpdir = Sys.getenv "TMPDIR" |> Option.value ~default:"/tmp/" in
+      let tmp_path = Bytes.of_string (tmpdir ^ "sriracha.cmxs." ^ "XXXXXX") in
+      mktemp ~template:tmp_path;
+      let tmp_path = Bytes.to_string tmp_path in
+      t.prev_path <- Some tmp_path;
+      Unix.system (Stdlib.Format.sprintf "cp %s %s" t.path_to_cmxs tmp_path)
+      |> (ignore : Unix.process_status -> unit);
+      Or_error.map (load tmp_path) ~f:(fun main ->
+        t.main <- main;
+        List.iter !on_reload_hooks ~f:(fun hook -> hook ());
+        `reloaded)
   ;;
 end
 
@@ -70,7 +82,7 @@ module For_loaders = struct
 
   let load_app ~path_to_cmxs : App.t =
     let main = App.load path_to_cmxs |> Or_error.ok_exn in
-    { path_to_cmxs; main }
+    { path_to_cmxs; main; prev_path = None }
   ;;
 end
 

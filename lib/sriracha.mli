@@ -28,7 +28,7 @@ module For_loaders : sig
     val main : t -> Main.t
 
     (** Hot-reload all of the app's hot-reloadable functions. *)
-    val hot_reload : t -> unit Or_error.t
+    val hot_reload : t -> [ `unchanged | `reloaded ] Or_error.t
   end
 
   (** The main entry-point: load the provided sriracha-enabled library. *)
